@@ -83,6 +83,6 @@ $('patch-form').onsubmit = async event => {
 $('save-launch').onclick = async () => { config.launchURL = $('launch-url').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('save-status').onclick = async () => { config.maintenance = $('maintenance').checked; config.message = $('message').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('logout').onclick = () => { adminToken = ''; config = null; $('editor').hidden = true; $('login').hidden = false; feedback('ออกจากระบบแล้ว'); };
-$('api-url').value = localStorage.getItem('dragon-free-api-url') || '';
+$('api-url').value = localStorage.getItem('dragon-free-api-url') || 'https://dragon-free-v2-api-7fa4e1c9.dragonhex.workers.dev';
 addEventListener('hashchange', () => { if (config) render(); });
 
