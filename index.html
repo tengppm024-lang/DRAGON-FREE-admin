@@ -9,7 +9,7 @@
     <nav class="tabs"><a href="#patches" id="patch-link">อัปโหลดแพตช์</a><a href="#status" id="status-link">ปิดปรับปรุง</a><button id="logout" class="ghost">ออกจากระบบ</button></nav>
     <section id="patch-page" class="panel" hidden><div class="section-heading"><div><p class="eyebrow">01 / PATCH LIBRARY</p><h2>อัปโหลดแพตช์ .3105</h2></div><span class="tag">MAX 100 MB</span></div>
       <form id="patch-form"><div class="grid"><label>ชื่อฟังก์ชัน<input id="name" maxlength="200" placeholder="ระบบใช้ชื่อไฟล์ให้อัตโนมัติ"></label><label>เวอร์ชัน<input id="version" value="1.0" required maxlength="100"></label></div><label>คำอธิบาย<input id="subtitle" maxlength="300" placeholder="แสดงใต้ชื่อฟังก์ชัน"></label><label>รหัสไฟล์ .3105 (ถ้ามี)<input id="password" type="text" autocomplete="off"></label><label class="file-card">เลือกไฟล์แพตช์ .3105<input id="patch-file" type="file" accept=".3105" required><span id="file-name">ยังไม่ได้เลือกไฟล์</span></label><label>อัปเดตฟังก์ชันเดิม<select id="replace"><option value="">เพิ่มฟังก์ชันใหม่</option></select></label><button class="primary" id="upload">อัปโหลดและเผยแพร่</button><p id="upload-feedback" class="muted" role="status" aria-live="polite"></p></form>
-      <div class="divider"></div><label>ลิงก์เปิดแอปที่เกี่ยวข้อง (HTTPS)<input id="launch-url" type="url" placeholder="https://..."></label><button id="save-launch" class="ghost">บันทึกลิงก์</button><div class="divider"></div><h3>แพตช์ที่เผยแพร่</h3><div id="patch-list" class="patch-list"></div>
+      <div class="divider"></div><div class="grid"><label>ชื่อปุ่มในแอป<input id="launch-label" maxlength="80" placeholder="เช่น เข้าเกม"></label><label>ลิงก์เปิดแอปที่เกี่ยวข้อง (HTTPS)<input id="launch-url" type="url" placeholder="https://..."></label></div><button id="save-launch" class="ghost">บันทึกชื่อปุ่มและลิงก์</button><div class="divider"></div><h3>แพตช์ที่เผยแพร่</h3><div id="patch-list" class="patch-list"></div>
     </section>
     <section id="status-page" class="panel" hidden><p class="eyebrow">02 / SERVICE STATUS</p><h2>สถานะการใช้งาน</h2><p class="muted">เมื่อเปิดปิดปรับปรุง แอปจะแสดงหน้าปิดปรับปรุงของ DRAGON HEX เดิม</p><label class="switch-row"><span><strong>ปิดปรับปรุง</strong><small>ระงับรายการแพตช์ชั่วคราว</small></span><input id="maintenance" type="checkbox"></label><label>ข้อความแจ้งในแอป<textarea id="message" rows="4" maxlength="2000" placeholder="กำลังปรับปรุงระบบ กรุณาลองใหม่ภายหลัง"></textarea></label><button id="save-status" class="primary">บันทึกสถานะ</button></section>
   </section><p id="feedback" role="status" aria-live="polite"></p><footer>DRAGON FREE <span>INDEPENDENT CONTROL</span></footer>
@@ -37,6 +37,7 @@ function render() {
   $('patch-link').classList.toggle('active', !statusPage());
   $('status-link').classList.toggle('active', statusPage());
   $('maintenance').checked = config.maintenance; $('message').value = config.message;
+  $('launch-label').value = config.launchLabel || 'เปิดแอปที่เกี่ยวข้อง';
   $('launch-url').value = config.launchURL;
   const list = $('patch-list'); list.replaceChildren();
   const replace = $('replace'); replace.replaceChildren(new Option('เพิ่มฟังก์ชันใหม่', ''));
@@ -99,7 +100,7 @@ $('patch-form').onsubmit = async event => {
   } catch (error) { uploadFeedback(error.message, true); }
   finally { button.disabled = false; }
 };
-$('save-launch').onclick = async () => { config.launchURL = $('launch-url').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
+$('save-launch').onclick = async () => { config.launchLabel = $('launch-label').value.trim() || 'เปิดแอปที่เกี่ยวข้อง'; config.launchURL = $('launch-url').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('save-status').onclick = async () => { config.maintenance = $('maintenance').checked; config.message = $('message').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('logout').onclick = () => { adminAuthorization = ''; config = null; $('editor').hidden = true; $('login').hidden = false; feedback('ออกจากระบบแล้ว'); };
 addEventListener('hashchange', () => { if (config) render(); });
