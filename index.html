@@ -8,7 +8,7 @@
   <section id="editor" hidden>
     <nav class="tabs"><a href="#patches" id="patch-link">อัปโหลดแพตช์</a><a href="#status" id="status-link">ปิดปรับปรุง</a><button id="logout" class="ghost">ออกจากระบบ</button></nav>
     <section id="patch-page" class="panel" hidden><div class="section-heading"><div><p class="eyebrow">01 / PATCH LIBRARY</p><h2>อัปโหลดแพตช์ .3105</h2></div><span class="tag">MAX 100 MB</span></div>
-      <form id="patch-form"><div class="grid"><label>ชื่อฟังก์ชัน<input id="name" required maxlength="200" placeholder="เช่น Dragon Function"></label><label>เวอร์ชัน<input id="version" value="1.0" required maxlength="100"></label></div><label>คำอธิบาย<input id="subtitle" maxlength="300" placeholder="แสดงใต้ชื่อฟังก์ชัน"></label><label>รหัสไฟล์ .3105 (ถ้ามี)<input id="password" type="text" autocomplete="off"></label><label class="file-card">เลือกไฟล์แพตช์ .3105<input id="patch-file" type="file" accept=".3105" required><span id="file-name">ยังไม่ได้เลือกไฟล์</span></label><label>อัปเดตฟังก์ชันเดิม<select id="replace"><option value="">เพิ่มฟังก์ชันใหม่</option></select></label><button class="primary" id="upload">อัปโหลดและเผยแพร่</button></form>
+      <form id="patch-form"><div class="grid"><label>ชื่อฟังก์ชัน<input id="name" maxlength="200" placeholder="ระบบใช้ชื่อไฟล์ให้อัตโนมัติ"></label><label>เวอร์ชัน<input id="version" value="1.0" required maxlength="100"></label></div><label>คำอธิบาย<input id="subtitle" maxlength="300" placeholder="แสดงใต้ชื่อฟังก์ชัน"></label><label>รหัสไฟล์ .3105 (ถ้ามี)<input id="password" type="text" autocomplete="off"></label><label class="file-card">เลือกไฟล์แพตช์ .3105<input id="patch-file" type="file" accept=".3105" required><span id="file-name">ยังไม่ได้เลือกไฟล์</span></label><label>อัปเดตฟังก์ชันเดิม<select id="replace"><option value="">เพิ่มฟังก์ชันใหม่</option></select></label><button class="primary" id="upload">อัปโหลดและเผยแพร่</button><p id="upload-feedback" class="muted" role="status" aria-live="polite"></p></form>
       <div class="divider"></div><label>ลิงก์เปิดแอปที่เกี่ยวข้อง (HTTPS)<input id="launch-url" type="url" placeholder="https://..."></label><button id="save-launch" class="ghost">บันทึกลิงก์</button><div class="divider"></div><h3>แพตช์ที่เผยแพร่</h3><div id="patch-list" class="patch-list"></div>
     </section>
     <section id="status-page" class="panel" hidden><p class="eyebrow">02 / SERVICE STATUS</p><h2>สถานะการใช้งาน</h2><p class="muted">เมื่อเปิดปิดปรับปรุง แอปจะแสดงหน้าปิดปรับปรุงของ DRAGON HEX เดิม</p><label class="switch-row"><span><strong>ปิดปรับปรุง</strong><small>ระงับรายการแพตช์ชั่วคราว</small></span><input id="maintenance" type="checkbox"></label><label>ข้อความแจ้งในแอป<textarea id="message" rows="4" maxlength="2000" placeholder="กำลังปรับปรุงระบบ กรุณาลองใหม่ภายหลัง"></textarea></label><button id="save-status" class="primary">บันทึกสถานะ</button></section>
@@ -20,6 +20,7 @@ let adminAuthorization = '';
 const apiBase = 'https://dragon-free-v2-api-7fa4e1c9.dragonhex.workers.dev';
 const statusPage = () => location.hash === '#status';
 function feedback(message, error = false) { $('feedback').textContent = message; $('feedback').classList.toggle('error', error); }
+function uploadFeedback(message, error = false) { $('upload-feedback').textContent = message; $('upload-feedback').classList.toggle('error', error); feedback(message, error); }
 async function api(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, { ...options, headers: { 'X-Dragon-Admin': '1', 'Authorization': adminAuthorization, ...options.headers } });
   const data = await response.json();
@@ -67,17 +68,23 @@ $('login-form').onsubmit = async event => {
   }
   catch (error) { feedback(error.message, true); }
 };
-$('patch-file').onchange = () => { $('file-name').textContent = $('patch-file').files?.[0]?.name || 'ยังไม่ได้เลือกไฟล์'; };
+$('patch-file').onchange = () => {
+  const file = $('patch-file').files?.[0];
+  $('file-name').textContent = file?.name || 'ยังไม่ได้เลือกไฟล์';
+  if (file && !$('name').value.trim()) $('name').value = file.name.replace(/\.3105$/i, '');
+  uploadFeedback(file ? `เลือก ${file.name} แล้ว กดอัปโหลดและเผยแพร่ได้เลย` : '');
+};
 $('patch-form').onsubmit = async event => {
   event.preventDefault(); const button = $('upload'); const file = $('patch-file').files?.[0];
-  if (!file || !file.name.toLowerCase().endsWith('.3105') || file.size > 100 * 1024 * 1024) return feedback('เลือกไฟล์ .3105 ขนาดไม่เกิน 100 MB', true);
-  button.disabled = true; feedback('กำลังอัปโหลดแพตช์…');
+  if (!file || !file.name.toLowerCase().endsWith('.3105') || file.size > 100 * 1024 * 1024) return uploadFeedback('เลือกไฟล์ .3105 ขนาดไม่เกิน 100 MB', true);
+  if (!$('name').value.trim()) $('name').value = file.name.replace(/\.3105$/i, '');
+  button.disabled = true; uploadFeedback('กำลังอัปโหลดแพตช์…');
   try {
     const chunkSize = 8 * 1024 * 1024;
     const id = crypto.randomUUID();
     const total = Math.ceil(file.size / chunkSize);
     for (let index = 0; index < total; index++) {
-      feedback(`กำลังอัปโหลดแพตช์… ${index + 1}/${total}`);
+      uploadFeedback(`กำลังอัปโหลดแพตช์… ${index + 1}/${total}`);
       await api(`/admin/patch-file?filename=${encodeURIComponent(file.name)}&id=${id}&index=${index}&total=${total}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: file.slice(index * chunkSize, (index + 1) * chunkSize)
       });
@@ -88,8 +95,8 @@ $('patch-form').onsubmit = async event => {
     const old = config.patches.find(patch => patch.id === $('replace').value);
     const patch = { id: old?.id || `patch-${crypto.randomUUID()}`, name: $('name').value.trim(), subtitle: $('subtitle').value.trim(), version: $('version').value.trim(), password: $('password').value, enabled: old?.enabled ?? true, patchURL: result.url };
     config.patches = old ? config.patches.map(item => item.id === old.id ? patch : item) : [...config.patches, patch];
-    await save(); $('patch-form').reset(); $('file-name').textContent = 'ยังไม่ได้เลือกไฟล์'; render();
-  } catch (error) { feedback(error.message, true); }
+    await save(); $('patch-form').reset(); $('file-name').textContent = 'ยังไม่ได้เลือกไฟล์'; render(); uploadFeedback(`เผยแพร่ ${patch.name} แล้ว`);
+  } catch (error) { uploadFeedback(error.message, true); }
   finally { button.disabled = false; }
 };
 $('save-launch').onclick = async () => { config.launchURL = $('launch-url').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
