@@ -4,7 +4,7 @@
 <body><main class="shell">
   <header class="bar"><div class="brand"><span class="mark">D</span><div><strong>DRAGON FREE</strong><small>PATCH CONTROL</small></div></div><span class="live"><i></i> CONTROL ROOM</span></header>
   <section class="hero"><p class="eyebrow">DRAGON HEX SYSTEM COPY</p><h1>จัดการแพตช์<span>และสถานะแอป</span></h1><p>ระบบหลังบ้านแยกสำหรับ DRAGON FREE โดยเฉพาะ</p></section>
-  <section id="login" class="panel"><h2>เข้าสู่ระบบผู้ดูแล</h2><p class="muted">ผู้ใช้แอปไม่ต้องใช้คีย์ หน้านี้สำหรับผู้ดูแลแพตช์เท่านั้น</p><form id="login-form"><label>Cloudflare API URL<input id="api-url" type="url" placeholder="https://dragon-free-v2-api-7fa4e1c9.dragonhex.workers.dev" required></label><div class="grid"><label>ชื่อผู้ใช้<input id="username" type="text" autocomplete="username" required></label><label>รหัสผ่าน<input id="password-login" type="password" autocomplete="current-password" required></label></div><button class="primary">เข้าสู่หลังบ้าน</button></form></section>
+  <section id="login" class="panel"><h2>เข้าสู่ระบบผู้ดูแล</h2><p class="muted">ผู้ใช้แอปไม่ต้องใช้คีย์ หน้านี้สำหรับผู้ดูแลแพตช์เท่านั้น</p><form id="login-form"><div class="grid"><label>ชื่อผู้ใช้<input id="username" type="text" autocomplete="username" required></label><label>รหัสผ่าน<input id="password-login" type="password" autocomplete="current-password" required></label></div><button class="primary">เข้าสู่หลังบ้าน</button></form></section>
   <section id="editor" hidden>
     <nav class="tabs"><a href="#patches" id="patch-link">อัปโหลดแพตช์</a><a href="#status" id="status-link">ปิดปรับปรุง</a><button id="logout" class="ghost">ออกจากระบบ</button></nav>
     <section id="patch-page" class="panel" hidden><div class="section-heading"><div><p class="eyebrow">01 / PATCH LIBRARY</p><h2>อัปโหลดแพตช์ .3105</h2></div><span class="tag">MAX 100 MB</span></div>
@@ -17,7 +17,7 @@
 const $ = id => document.getElementById(id);
 let config = null;
 let adminAuthorization = '';
-let apiBase = '';
+const apiBase = 'https://dragon-free-v2-api-7fa4e1c9.dragonhex.workers.dev';
 const statusPage = () => location.hash === '#status';
 function feedback(message, error = false) { $('feedback').textContent = message; $('feedback').classList.toggle('error', error); }
 async function api(path, options = {}) {
@@ -61,12 +61,8 @@ async function load() {
 $('login-form').onsubmit = async event => {
   event.preventDefault();
   try {
-    const url = new URL($('api-url').value.trim());
-    if (url.protocol !== 'https:') throw Error('API ต้องเป็น HTTPS');
-    apiBase = url.origin;
     adminAuthorization = `Basic ${btoa(`${$('username').value}:${$('password-login').value}`)}`;
     await api('/admin/login', { method: 'POST' });
-    localStorage.setItem('dragon-free-api-url', apiBase);
     $('password-login').value = ''; feedback(''); await load();
   }
   catch (error) { feedback(error.message, true); }
@@ -99,7 +95,6 @@ $('patch-form').onsubmit = async event => {
 $('save-launch').onclick = async () => { config.launchURL = $('launch-url').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('save-status').onclick = async () => { config.maintenance = $('maintenance').checked; config.message = $('message').value.trim(); try { await save(); } catch (error) { feedback(error.message, true); } };
 $('logout').onclick = () => { adminAuthorization = ''; config = null; $('editor').hidden = true; $('login').hidden = false; feedback('ออกจากระบบแล้ว'); };
-$('api-url').value = localStorage.getItem('dragon-free-api-url') || 'https://dragon-free-v2-api-7fa4e1c9.dragonhex.workers.dev';
 addEventListener('hashchange', () => { if (config) render(); });
 
 </script></body></html>
