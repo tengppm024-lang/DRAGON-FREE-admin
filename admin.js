@@ -61,7 +61,18 @@ $('patch-form').onsubmit = async event => {
   if (!file || !file.name.toLowerCase().endsWith('.3105') || file.size > 100 * 1024 * 1024) return feedback('เลือกไฟล์ .3105 ขนาดไม่เกิน 100 MB', true);
   button.disabled = true; feedback('กำลังอัปโหลดแพตช์…');
   try {
-    const result = await api(`/admin/patch-file?filename=${encodeURIComponent(file.name)}`, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: file });
+    const chunkSize = 8 * 1024 * 1024;
+    const id = crypto.randomUUID();
+    const total = Math.ceil(file.size / chunkSize);
+    for (let index = 0; index < total; index++) {
+      feedback(`กำลังอัปโหลดแพตช์… ${index + 1}/${total}`);
+      await api(`/admin/patch-file?filename=${encodeURIComponent(file.name)}&id=${id}&index=${index}&total=${total}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: file.slice(index * chunkSize, (index + 1) * chunkSize)
+      });
+    }
+    const result = await api('/admin/patch-file/complete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, filename: file.name, size: file.size, total })
+    });
     const old = config.patches.find(patch => patch.id === $('replace').value);
     const patch = { id: old?.id || `patch-${crypto.randomUUID()}`, name: $('name').value.trim(), subtitle: $('subtitle').value.trim(), version: $('version').value.trim(), password: $('password').value, enabled: old?.enabled ?? true, patchURL: result.url };
     config.patches = old ? config.patches.map(item => item.id === old.id ? patch : item) : [...config.patches, patch];
